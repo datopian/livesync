@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LiveSync — Real-time collaboration on local files</title>
+  <meta name="description" content="Google Docs-style sync for files on your disk. Share a file, get a session ID, and edit together in real-time from any editor.">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="LiveSync — Real-time collaboration on local files">
+  <meta property="og:description" content="Google Docs-style sync for files on your disk. Share a file, get a session ID, and edit together in real-time from any editor.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://trylivesync.dev">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="LiveSync — Real-time collaboration on local files">
+  <meta name="twitter:description" content="Google Docs-style sync for files on your disk. Share a file, get a session ID, and edit together in real-time from any editor.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'IBM Plex Mono', 'SF Mono', 'Menlo', 'Consolas', monospace;
+      background: #fafafa;
+      color: #111;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    /* Header */
+    .site-header {
+      margin-bottom: 48px;
+    }
+
+    .site-name {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #111;
+      margin-bottom: 8px;
+    }
+
+    .site-name .credit {
+      font-size: 14px;
+      font-weight: 400;
+      letter-spacing: 0;
+      text-transform: none;
+      color: #888;
+    }
+
+    .site-name .credit a {
+      color: #888;
+      text-decoration: none;
+    }
+
+    .site-name .credit a:hover {
+      text-decoration: underline;
+    }
+
+    .site-tagline {
+      font-size: 14px;
+      color: #111;
+    }
+
+    /* Hero */
+    .hero {
+      margin-bottom: 64px;
+    }
+
+    .hero-text {
+      font-size: 18px;
+      font-weight: 400;
+      margin-bottom: 32px;
+      color: #111;
+    }
+
+    .hero-demo {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .demo-titlebar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: #111;
+    }
+
+    .demo-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #333;
+    }
+
+    .demo-dot:nth-child(1) { background: #ff5f56; }
+    .demo-dot:nth-child(2) { background: #ffbd2e; }
+    .demo-dot:nth-child(3) { background: #27c93f; }
+
+    .demo-body {
+      padding: 20px 24px;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .demo-body .prompt {
+      color: #888;
+    }
+
+    .demo-body .cmd {
+      color: #fff;
+    }
+
+    .demo-body .output {
+      color: #666;
+    }
+
+    .demo-body .highlight {
+      color: #6ee7b7;
+    }
+
+    .demo-body .separator {
+      display: block;
+      height: 24px;
+    }
+
+    /* Sections */
+    .section {
+      margin-bottom: 56px;
+    }
+
+    .section-title {
+      font-size: 15px;
+      font-weight: 500;
+      margin-bottom: 20px;
+      color: #111;
+    }
+
+    .section-title .hash {
+      color: #999;
+      margin-right: 6px;
+    }
+
+    .section-desc {
+      font-size: 14px;
+      color: #666;
+      margin-bottom: 16px;
+    }
+
+    /* Install */
+    .install-cmd {
+      font-size: 15px;
+      padding: 16px 20px;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      position: relative;
+    }
+
+    .install-cmd code {
+      color: #111;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      padding: 6px 12px;
+      font-size: 12px;
+      font-family: inherit;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .copy-btn:hover {
+      background: #eee;
+    }
+
+    .copy-btn.copied {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .step {
+      display: flex;
+      gap: 16px;
+    }
+
+    .step-number {
+      flex-shrink: 0;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #111;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: 50%;
+    }
+
+    .step-content {
+      flex: 1;
+      padding-top: 3px;
+    }
+
+    .step-label {
+      font-size: 14px;
+      color: #111;
+      margin-bottom: 8px;
+    }
+
+    .step-code {
+      font-size: 14px;
+      padding: 12px 16px;
+      background: #f5f5f5;
+      border: 1px solid #e0e0e0;
+      color: #111;
+    }
+
+    .step-note {
+      font-size: 13px;
+      color: #888;
+      margin-top: 8px;
+    }
+
+    /* How it works */
+    .how-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .how-item {
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+      font-size: 14px;
+      padding: 12px 0;
+      border-bottom: 1px solid #eee;
+    }
+
+    .how-item:last-child {
+      border-bottom: none;
+    }
+
+    .how-item .arrow {
+      color: #999;
+      flex-shrink: 0;
+    }
+
+    .how-item .text {
+      color: #444;
+    }
+
+    /* Editor table */
+    .editor-table {
+      width: 100%;
+      font-size: 14px;
+      border-collapse: collapse;
+    }
+
+    .editor-table th {
+      text-align: left;
+      font-weight: 500;
+      color: #111;
+      padding: 10px 0;
+      border-bottom: 2px solid #ddd;
+    }
+
+    .editor-table td {
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+      color: #444;
+    }
+
+    .editor-table td:first-child {
+      color: #111;
+      font-weight: 500;
+      white-space: nowrap;
+      padding-right: 24px;
+    }
+
+    .editor-table code {
+      font-size: 13px;
+      background: #f5f5f5;
+      padding: 2px 6px;
+      border-radius: 3px;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffc107;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Footer */
+    hr {
+      border: none;
+      border-top: 1px solid #e0e0e0;
+      margin: 48px 0;
+    }
+
+    .footer {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .footer a {
+      color: #888;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+
+    .footer-love {
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .footer-love-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: #111;
+      margin-bottom: 12px;
+    }
+
+    .footer-love-desc {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .footer-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-family: inherit;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: background 0.15s;
+    }
+
+    .footer-btn-primary {
+      background: #111;
+      color: #fff;
+      border: 1px solid #111;
+    }
+
+    .footer-btn-primary:hover {
+      background: #333;
+      text-decoration: none;
+    }
+
+    .footer-btn-secondary {
+      background: #fff;
+      color: #111;
+      border: 1px solid #ddd;
+    }
+
+    .footer-btn-secondary:hover {
+      background: #f5f5f5;
+      text-decoration: none;
+    }
+
+    .footer-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .footer-btn .arrow {
+      font-size: 12px;
+    }
+
+    .footer-bottom {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-bottom-left {
+      font-size: 13px;
+      color: #888;
+    }
+
+    .footer-bottom-right {
+      display: flex;
+      gap: 24px;
+      font-size: 13px;
+    }
+
+    .footer-bottom-right a {
+      color: #888;
+      text-decoration: none;
+    }
+
+    .footer-bottom-right a:hover {
+      color: #111;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 32px 20px;
+      }
+
+      .hero-text {
+        font-size: 16px;
+      }
+
+      .demo-body {
+        font-size: 13px;
+        padding: 16px;
+      }
+
+      .step {
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .editor-table td:first-child {
+        padding-right: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="site-header">
+      <div class="site-name">LiveSync <span class="credit">by <a href="https://datopian.com/">Datopian</a></span></div>
+      <div class="site-tagline">Real-time collaboration on local files.</div>
+    </div>
+
+    <div class="hero">
+      <p class="hero-text">Google Docs-style sync, but for files on your disk, in your editor. Vim, VS Code, Emacs, Sublime &mdash; if your editor can save to disk, it works.</p>
+
+      <div class="hero-demo">
+        <div class="demo-titlebar">
+          <div class="demo-dot"></div>
+          <div class="demo-dot"></div>
+          <div class="demo-dot"></div>
+        </div>
+        <div class="demo-body">
+          <span class="prompt">$</span> <span class="cmd">livesync share notes.md</span><br>
+          <span class="output">Sharing notes.md</span><br>
+          <span class="output">Session: </span><span class="highlight">abc123</span><br>
+          <br>
+          <span class="output">Others can join with:</span><br>
+          <span class="output">&nbsp;&nbsp;</span><span class="highlight">livesync join abc123</span><br>
+          <span class="separator"></span>
+          <span class="prompt">$</span> <span class="cmd">livesync join abc123</span><br>
+          <span class="output">Joined session abc123</span><br>
+          <span class="output">Syncing to abc123.md</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="hash">##</span>Install</div>
+      <div class="install-cmd">
+        <code>npm install -g livesync</code>
+        <button class="copy-btn" data-copy="npm install -g livesync">Copy</button>
+      </div>
+      <p class="section-desc" style="margin-top: 16px;">
+        <span class="status-badge">Alpha</span>&ensp;Open source, free, expect rough edges.
+      </p>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="hash">##</span>How to use</div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <div class="step-label">Share a file</div>
+            <div class="step-code">livesync share notes.md</div>
+            <div class="step-note">Creates a session and starts watching your file for changes.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <div class="step-label">Others join with the session ID</div>
+            <div class="step-code">livesync join abc123</div>
+            <div class="step-note">Creates a local copy synced to the session. Optionally specify a filename: <code>livesync join abc123 my-copy.md</code></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <div class="step-label">Edit in your editor, save, done</div>
+            <div class="step-note">Changes appear on the other side in under a second. Ctrl+C to disconnect.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="hash">##</span>How it works</div>
+      <div class="how-list">
+        <div class="how-item">
+          <span class="arrow">&rsaquo;</span>
+          <span class="text">Your editor saves a file to disk</span>
+        </div>
+        <div class="how-item">
+          <span class="arrow">&rsaquo;</span>
+          <span class="text">LiveSync detects the change, diffs it against its CRDT document, and sends a minimal update to the relay</span>
+        </div>
+        <div class="how-item">
+          <span class="arrow">&rsaquo;</span>
+          <span class="text">The relay broadcasts to all connected clients</span>
+        </div>
+        <div class="how-item">
+          <span class="arrow">&rsaquo;</span>
+          <span class="text">Other clients apply the update and write the result to disk</span>
+        </div>
+        <div class="how-item">
+          <span class="arrow">&rsaquo;</span>
+          <span class="text">Their editor picks up the changed file</span>
+        </div>
+      </div>
+      <p class="section-desc" style="margin-top: 16px;">Concurrent edits merge cleanly thanks to CRDTs (powered by <a href="https://github.com/yjs/yjs" style="color: #666;">Yjs</a>) &mdash; no locking, no manual conflict resolution.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="hash">##</span>Editor setup</div>
+      <p class="section-desc">LiveSync writes changes to disk &mdash; your editor needs to detect and reload external changes. Most do this automatically:</p>
+      <table class="editor-table">
+        <tr>
+          <th>Editor</th>
+          <th>Setup</th>
+        </tr>
+        <tr>
+          <td>VS Code</td>
+          <td>Works out of the box</td>
+        </tr>
+        <tr>
+          <td>Sublime Text</td>
+          <td>Works out of the box</td>
+        </tr>
+        <tr>
+          <td>JetBrains</td>
+          <td>Reloads on window focus</td>
+        </tr>
+        <tr>
+          <td>Vim / Neovim</td>
+          <td><code>set autoread</code> + <code>autocmd FocusGained,CursorHold * checktime</code></td>
+        </tr>
+        <tr>
+          <td>Emacs</td>
+          <td>Enable <code>auto-revert-mode</code></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="section">
+      <div class="section-title"><span class="hash">##</span>CLI reference</div>
+      <div class="step-code" style="margin-bottom: 12px;">
+        livesync share &lt;filepath&gt;<br>
+        &nbsp;&nbsp;-r, --relay &lt;url&gt;&ensp;Custom relay URL
+      </div>
+      <div class="step-code">
+        livesync join &lt;session-id&gt; [filepath]<br>
+        &nbsp;&nbsp;-r, --relay &lt;url&gt;&ensp;Custom relay URL
+      </div>
+    </div>
+
+    <hr>
+
+    <div class="footer">
+      <div class="footer-love">
+        <div class="footer-love-title">With love from <a href="https://datopian.com/">Datopian</a></div>
+        <div class="footer-love-desc">We build tools for data and collaboration. LiveSync is open source and free to use.</div>
+        <div class="footer-links">
+          <a href="https://github.com/datopian/livesync" class="footer-btn footer-btn-primary" target="_blank" rel="noopener">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+            View on GitHub
+            <span class="arrow">&nearr;</span>
+          </a>
+          <a href="https://www.npmjs.com/package/livesync" class="footer-btn footer-btn-secondary" target="_blank" rel="noopener">
+            npm package
+            <span class="arrow">&nearr;</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div class="footer-bottom-left">LiveSync</div>
+        <div class="footer-bottom-right">
+          <a href="https://datopian.com/">Datopian</a>
+          <a href="https://github.com/datopian/livesync">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Copy button
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 2000);
+      });
+    });
+  </script>
+</body>
+</html>
